@@ -1,0 +1,30 @@
+{
+  "name": "siomporas-solitaire",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Klondike, Spider and FreeCell that install once and play offline.",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/engine/*.test.ts",
+    "icons": "node scripts/icons.mjs",
+    "offline": "node scripts/offline-check.mjs",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.3.1",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "playwright": "^1.61.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "wrangler": "^4.50.0"
+  }
+}
