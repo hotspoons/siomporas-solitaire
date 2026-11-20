@@ -694,6 +694,115 @@ details summary {
   align-items: center;
 }
 
+/* ---------- in-game menu ---------- */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(2, 12, 9, 0.55);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100dvh - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #10503c 0%, #0a3a2b 100%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  animation: sheet-in 130ms ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.sheet-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+
+.sheet-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sheet-row .btn {
+  min-height: 52px;
+}
+
+.sheet-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sheet-home {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  opacity: 0.65;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sheet-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet-confirm p {
+  margin: 0 0 4px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+@media (min-width: 700px) {
+  .sheet-backdrop {
+    align-items: center;
+  }
+}
+
 /* ---------- win ---------- */
 
 .win {

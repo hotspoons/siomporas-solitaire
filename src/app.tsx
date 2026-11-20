@@ -3,6 +3,7 @@ import { useEffect } from 'preact/hooks'
 import { Board } from './ui/Board.tsx'
 import { Menu, type Prefs } from './ui/Menu.tsx'
 import { Controls } from './ui/Controls.tsx'
+import { GameMenu } from './ui/GameMenu.tsx'
 import {
   applyMove,
   deserialize,
@@ -54,6 +55,8 @@ interface InstallEvent extends Event {
 const prefs = signal<Prefs>(loadPrefs())
 const game = signal<GameState | null>(loadGame())
 const history = signal<GameState[]>([])
+const future = signal<GameState[]>([])
+const gameMenu = signal(false)
 const selection = signal<{ ref: PileRef; count: number } | null>(null)
 const screen = signal<'menu' | 'game'>('menu')
 const canInstall = signal(false)
@@ -84,6 +87,7 @@ function commit(next: GameState | null): void {
   if (!next) return
   const current = game.value
   if (current) history.value = [...history.value.slice(-199), current]
+  future.value = []
   game.value = next
   selection.value = null
   persist()
@@ -97,8 +101,10 @@ function startGame(variant: Variant, opts: { draw?: number; difficulty?: number 
     difficulty: opts.difficulty ?? prefs.value.difficulty,
   })
   history.value = []
+  future.value = []
   selection.value = null
   peek.value = false
+  gameMenu.value = false
   screen.value = 'game'
   persist()
 }
@@ -107,10 +113,28 @@ function undo(): void {
   const h = history.value.slice()
   const prev = h.pop()
   if (!prev) return
+  if (game.value) future.value = [...future.value.slice(-199), game.value]
   game.value = prev
   history.value = h
   selection.value = null
   persist()
+}
+
+function redo(): void {
+  const f = future.value.slice()
+  const next = f.pop()
+  if (!next) return
+  if (game.value) history.value = [...history.value.slice(-199), game.value]
+  game.value = next
+  future.value = f
+  selection.value = null
+  persist()
+}
+
+function goHome(): void {
+  selection.value = null
+  gameMenu.value = false
+  screen.value = 'menu'
 }
 
 function onCard(ref: PileRef, cardIndex: number): void {
@@ -244,7 +268,7 @@ export function App() {
             onUndo={undo}
             onMenu={() => {
               selection.value = null
-              screen.value = 'menu'
+              gameMenu.value = true
             }}
           />
           <Board
@@ -256,6 +280,33 @@ export function App() {
             onDrop={onDrop}
             onStock={onStock}
             peek={peek.value}
+          />
+          <GameMenu
+            open={gameMenu.value && !g.won}
+            canUndo={history.value.length > 0}
+            canRedo={future.value.length > 0}
+            fullscreen={fullscreen.value}
+            canFullscreen={canFullscreen.value && !standalone.value}
+            peek={peek.value}
+            canSendHome={sendHome(g) !== null}
+            onClose={() => {
+              gameMenu.value = false
+            }}
+            onUndo={undo}
+            onRedo={redo}
+            onFullscreen={toggleFullscreen}
+            onCheat={(kind) => {
+              cheat(kind)
+              gameMenu.value = false
+            }}
+            onPeek={() => {
+              peek.value = !peek.value
+              gameMenu.value = false
+            }}
+            onNew={() => {
+              startGame(g.variant, { draw: g.draw, difficulty: g.difficulty })
+            }}
+            onHome={goHome}
           />
           {g.won && (
             <div class="win" role="dialog" aria-modal="true" aria-label="You won">

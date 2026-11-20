@@ -34,6 +34,7 @@ state for Undo before committing, exactly like a normal move. Covered by
 7. **Spider: collect any complete suit run, not just K..A.**
 
 Rules for adding one: keep it a pure `GameState → GameState` in `cheats.ts`,
-give it a test, add a button to the Cheats `<details>` block in `Menu.tsx`, and
-let the existing Undo/persistence do the rest. Cheats should never be reachable
-by accident from the table — they live one tap down, under the menu.
+give it a test, add a button to the cheat list in `GameMenu.tsx` (the in-game
+sheet) and to the Cheats `<details>` block in `Menu.tsx` (home, for a saved game),
+and let the existing Undo/persistence do the rest. Cheats should never be
+reachable by accident from the table — they live one tap down, under the menu.

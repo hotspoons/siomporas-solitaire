@@ -23,13 +23,12 @@ await page.waitForSelector('.board[data-ready]')
 ok((await page.locator('.card.peek').count()) === 0, 'no peek before asking')
 
 const openCheats = async () => {
-  // The menu may already be open (a cheat that does nothing leaves it open).
-  if (await page.locator('.controls').count()) {
+  // The in-game sheet, not the home screen. It stays open after a no-op cheat.
+  if (!(await page.locator('.sheet').count())) {
     await page.getByRole('button', { name: 'Menu' }).click()
+    await page.waitForTimeout(150)
   }
-  const details = page.locator('details.cheats')
-  ok((await details.count()) === 1, 'cheats section is in the menu')
-  if (!(await details.evaluate((d) => d.open))) await page.getByText('Cheats', { exact: true }).click()
+  ok((await page.getByRole('dialog').count()) === 1, 'cheats are in the game menu')
 }
 
 await openCheats()

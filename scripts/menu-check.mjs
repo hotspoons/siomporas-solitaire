@@ -1,0 +1,85 @@
+import { chromium, devices } from 'playwright'
+const url = process.argv[2] ?? 'http://127.0.0.1:4173/'
+const browser = await chromium.launch()
+const context = await browser.newContext({ ...devices['Pixel 7'] })
+const page = await context.newPage()
+const fails = []
+const ok = (c, m) => { if (c) console.log('ok  ', m); else { fails.push(m); console.log('FAIL', m) } }
+await page.goto(url, { waitUntil: 'networkidle' })
+await page.waitForTimeout(700)
+await page.getByRole('button', { name: 'New game' }).click()
+await page.waitForTimeout(300)
+
+// draw one card so undo has something to do
+await page.locator('.card.stock').click()
+await page.waitForTimeout(200)
+
+await page.locator('.controls button[aria-label="Menu"]').click()
+await page.waitForTimeout(250)
+const sheet = page.getByRole('dialog')
+ok((await page.locator('.sheet').count()) === 1, 'hamburger opens the in-game sheet')
+ok((await page.locator('.board').count()) === 1, 'the board is still underneath')
+ok((await page.locator('.menu').count()) === 0, 'hamburger does not go to the home screen')
+ok(await sheet.getByRole('button', { name: 'Undo' }).isEnabled(), 'undo is offered in the sheet')
+ok(!(await sheet.getByRole('button', { name: 'Redo' }).isEnabled()), 'redo starts disabled')
+ok((await sheet.getByRole('button', { name: 'Shuffle the face-down cards' }).count()) === 1, 'cheats are in the sheet')
+await page.screenshot({ path: 'shots/game-menu.png' })
+
+const before = await page.locator('.moves').textContent()
+await sheet.getByRole('button', { name: 'Undo' }).click()
+await page.waitForTimeout(200)
+ok((await page.locator('.moves').textContent()) !== before, 'undo works from the sheet')
+ok(await sheet.getByRole('button', { name: 'Redo' }).isEnabled(), 'redo becomes available')
+await sheet.getByRole('button', { name: 'Redo' }).click()
+await page.waitForTimeout(200)
+ok((await page.locator('.moves').textContent()) === before, 'redo restores the move')
+await page.screenshot({ path: 'shots/game-menu-redo.png' })
+
+// home needs a confirmation, and Keep playing returns to the game
+await sheet.getByRole('button', { name: 'Home screen' }).click()
+await page.waitForTimeout(200)
+ok((await page.locator('.sheet-confirm').count()) === 1, 'home asks first')
+ok((await page.locator('.board').count()) === 1, 'the board is still there while asking')
+await page.screenshot({ path: 'shots/game-menu-home-confirm.png' })
+await sheet.getByRole('button', { name: 'Keep playing' }).click()
+await page.waitForTimeout(200)
+ok((await page.locator('.sheet').count()) === 0, 'keep playing closes the sheet')
+ok((await page.locator('.board').count()) === 1, 'still in the game')
+
+// the confirmed path really goes home, with the game resumable
+await page.locator('.controls button[aria-label="Menu"]').click()
+await page.waitForTimeout(150)
+await sheet.getByRole('button', { name: 'Home screen' }).click()
+await page.waitForTimeout(150)
+await sheet.getByRole('button', { name: 'Go to home screen' }).click()
+await page.waitForTimeout(250)
+ok((await page.locator('.menu').count()) === 1, 'confirmed home shows the home screen')
+ok((await page.getByRole('button', { name: 'Continue last game' }).count()) === 1, 'the game is resumable')
+await page.getByRole('button', { name: 'Continue last game' }).click()
+await page.waitForTimeout(250)
+ok((await page.locator('.board').count()) === 1, 'continue returns to the same game')
+
+// new game also asks
+await page.locator('.controls button[aria-label="Menu"]').click()
+await page.waitForTimeout(150)
+await sheet.getByRole('button', { name: 'New game' }).click()
+await page.waitForTimeout(200)
+ok((await page.locator('.sheet-confirm').count()) === 1, 'new game asks before replacing the deal')
+await sheet.getByRole('button', { name: 'Keep this game' }).click()
+await page.waitForTimeout(150)
+ok((await page.locator('.board').count()) === 1, 'keep this game returns to the board')
+
+// backdrop and Escape close
+await page.locator('.controls button[aria-label="Menu"]').click()
+await page.waitForTimeout(200)
+await page.locator('.sheet-backdrop').click({ position: { x: 5, y: 5 } })
+await page.waitForTimeout(150)
+ok((await page.locator('.sheet').count()) === 0, 'tapping outside closes the sheet')
+await page.locator('.controls button[aria-label="Menu"]').click()
+await page.waitForTimeout(200)
+await page.keyboard.press('Escape')
+await page.waitForTimeout(150)
+ok((await page.locator('.sheet').count()) === 0, 'Escape closes the sheet')
+console.log(fails.length ? `${fails.length} FAILURES` : 'all good')
+await browser.close()
+process.exit(fails.length ? 1 : 0)

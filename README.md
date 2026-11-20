@@ -38,8 +38,13 @@ the game you reopen.
   cards home* and *peek*. All undoable. See [docs/CHEATS.md](docs/CHEATS.md).
 - Nothing on the page selects, highlights, or long-press-menus: dragging a card is
   always a card drag, never a text selection, a page refresh, or a back gesture.
-- **Undo** is always in the top bar. It goes back as far as you like.
-- **Menu → New game** starts fresh; **Continue last game** resumes the deal you left,
+- **Undo** floats in the bottom-right corner; **Redo** lives in the menu, and both go
+  as far back and forward as you like.
+- **The hamburger opens a menu over the table** — undo, redo, full screen, the cheats,
+  new game and a link to the home screen. It never yanks you out of a game. Leaving
+  for the home screen asks first, and the game is still there under **Continue last
+  game** when you come back.
+- **Home → New game** starts fresh; **Continue last game** resumes the deal you left,
   even after the phone restarts.
 - **Install on this phone** (in the menu) puts it on the home screen. After the first
   visit it opens with no signal; the whole app is cached on the device.
