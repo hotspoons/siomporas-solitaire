@@ -27,6 +27,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # wrangler is pinned in package.json (4.158.0). 4.165.x queries the newer
+      # worker-scoped subdomain API after upload, which answers 10007 on this
+      # account even though the deploy itself succeeded, so the action fails.
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
