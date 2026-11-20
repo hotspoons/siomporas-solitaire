@@ -58,6 +58,9 @@ const browser = await chromium.launch()
   ok((await page.locator('.drag-layer').count()) === 1, 'mouse: ghost follows the pointer')
   ok((await page.locator('.drag-src').count()) === move.count, 'mouse: source cards hidden')
   ok((await page.locator('.pile.drop-hover').count()) === 1, 'mouse: hovered target highlighted')
+  ok((await page.locator('.drag-stack.can-land').count()) === 1, 'mouse: playable drag is marked')
+  const breathe = await page.locator('.drag-stack').evaluate((el) => getComputedStyle(el).animationName)
+  ok(breathe === 'drag-breathe', `mouse: floating playable card pulses (${breathe})`)
   const selection = await page.evaluate(() => window.getSelection()?.toString() ?? '')
   ok(selection === '', `mouse: no text selected (${JSON.stringify(selection)})`)
   await page.screenshot({ path: 'shots/drag-desktop.png' })
@@ -65,6 +68,22 @@ const browser = await chromium.launch()
   await page.waitForTimeout(200)
   ok((await page.locator('.drag-layer').count()) === 0, 'mouse: ghost removed after drop')
   ok((await page.locator('.moves').textContent()) !== '0 moves', 'mouse: drop played the move')
+  await context.close()
+}
+
+// --- mouse: picking a playable card up by tap leaves it pulsing too ---
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await open(context)
+  const box = await page.locator(`[data-pile="${move.from.kind}:${move.from.index}"] .card`).nth(index).boundingBox()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.waitForTimeout(80)
+  const pulsing = page.locator('.card.selected.can-land')
+  ok((await pulsing.count()) === 1, 'mouse: selected playable card is marked')
+  const breathe = await pulsing.evaluate((el) => getComputedStyle(el).animationName)
+  ok(breathe === 'card-breathe', `mouse: selected card pulses (${breathe})`)
   await context.close()
 }
 

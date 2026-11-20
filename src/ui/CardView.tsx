@@ -5,6 +5,8 @@ import { initials, memberFor } from '../theme/family.ts'
 interface Props {
   card: Card
   selected?: boolean
+  /** The card is picked up and has at least one legal place to go. */
+  canLand?: boolean
   dimmed?: boolean
   /** Show a face-down card's face, greyed, without making it playable. */
   peek?: boolean
@@ -13,7 +15,7 @@ interface Props {
   onPointerDown?: (e: PointerEvent) => void
 }
 
-export function CardView({ card, selected, dimmed, peek, style, onSelect, onPointerDown }: Props) {
+export function CardView({ card, selected, canLand, dimmed, peek, style, onSelect, onPointerDown }: Props) {
   if (!card.faceUp && !peek) {
     return <div class="card back" style={style} aria-hidden="true" onPointerDown={onPointerDown} />
   }
@@ -25,9 +27,9 @@ export function CardView({ card, selected, dimmed, peek, style, onSelect, onPoin
   return (
     <button
       type="button"
-      class={`card face ${red ? 'red' : 'black'}${selected ? ' selected' : ''}${dimmed ? ' dim' : ''}${
-        card.faceUp ? '' : ' peek'
-      }`}
+      class={`card face ${red ? 'red' : 'black'}${selected ? ' selected' : ''}${
+        selected && canLand ? ' can-land' : ''
+      }${dimmed ? ' dim' : ''}${card.faceUp ? '' : ' peek'}`}
       style={style}
       aria-label={label}
       aria-disabled={!card.faceUp || undefined}

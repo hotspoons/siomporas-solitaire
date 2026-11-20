@@ -30,7 +30,10 @@ function DragLayer() {
       aria-hidden="true"
       style={{ transform: `translate3d(${d.x - d.ox}px, ${d.y - d.oy}px, 0)`, width: `${d.cw}px` }}
     >
-      <div class="drag-stack" style={{ '--cw': `${d.cw}px` } as Record<string, string>}>
+      <div
+        class={`drag-stack${d.targets.length ? ' can-land' : ''}`}
+        style={{ '--cw': `${d.cw}px` } as Record<string, string>}
+      >
         {d.cards.map((card) => (
           <CardView key={card.id} card={card} />
         ))}
@@ -306,6 +309,7 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
                 key={card.id}
                 card={card}
                 selected={isSelectedPile && i >= selectedFrom}
+                canLand={isSelectedPile && i >= selectedFrom && targets.length > 0}
                 peek={peek}
                 onSelect={() => onCard(ref, i)}
                 onPointerDown={(e) => onCardPointerDown(e, ref, i)}

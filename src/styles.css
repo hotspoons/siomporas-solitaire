@@ -386,6 +386,23 @@ button {
   z-index: 5;
 }
 
+/* A card that is already off the table — dragged, or picked up by tap-tap —
+   breathes when it has somewhere legal to go, so the landing is easier to
+   spot. Only the glow animates; the float itself stays put. */
+.card.selected.can-land {
+  animation: card-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes card-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(242, 193, 78, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(242, 193, 78, 0.9));
+  }
+}
+
 .stock {
   display: grid;
   place-items: center;
@@ -434,6 +451,25 @@ button {
 .drag-stack {
   position: relative;
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45));
+}
+
+/* The floating card keeps its float; when a landing exists it pulses a hair
+   larger and glows so the player can tell it is playable at all. */
+.drag-stack.can-land {
+  animation: drag-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes drag-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45));
+  }
+  50% {
+    transform: scale(1.03);
+    filter:
+      drop-shadow(0 12px 20px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 12px rgba(242, 193, 78, 0.9));
+  }
 }
 
 .drag-stack .card {

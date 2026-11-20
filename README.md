@@ -29,6 +29,9 @@ the game you reopen.
 - **Or tap, tap.** Tap a card to pick it up, tap a pile to put it down. Better for
   shaky hands and always available. Tap the same card twice to send it straight to
   a foundation when it can go.
+- **A floating card glows when it has a landing.** While a card is dragged, or
+  picked up by tap-tap, it breathes a warm glow if at least one pile would take
+  it — so you can tell it is playable before hunting for the spot.
 - **The foundations never grow the board.** A tall pile stacks into the ace's
   footprint with a few pixels of depth showing, so building up to a king can't
   push the tableau off the screen, even in landscape.
