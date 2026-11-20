@@ -7,12 +7,12 @@ interface Props {
   dimmed?: boolean
   style?: Record<string, string | number>
   onSelect?: () => void
-  onAuto?: () => void
+  onPointerDown?: (e: PointerEvent) => void
 }
 
-export function CardView({ card, selected, dimmed, style, onSelect, onAuto }: Props) {
+export function CardView({ card, selected, dimmed, style, onSelect, onPointerDown }: Props) {
   if (!card.faceUp) {
-    return <div class="card back" style={style} aria-hidden="true" />
+    return <div class="card back" style={style} aria-hidden="true" onPointerDown={onPointerDown} />
   }
   const red = isRed(card.suit)
   return (
@@ -21,8 +21,11 @@ export function CardView({ card, selected, dimmed, style, onSelect, onAuto }: Pr
       class={`card face ${red ? 'red' : 'black'}${selected ? ' selected' : ''}${dimmed ? ' dim' : ''}`}
       style={style}
       aria-label={`${rankLabel(card.rank)} of ${card.suit}${selected ? ', selected' : ''}`}
-      onClick={onSelect}
-      onDblClick={onAuto}
+      onPointerDown={onPointerDown}
+      onClick={(e) => {
+        // Pointer taps are handled on pointerup (see Board); this is the keyboard path.
+        if (e.detail === 0) onSelect?.()
+      }}
     >
       <span class="corner top">
         <span class="rank">{rankLabel(card.rank)}</span>

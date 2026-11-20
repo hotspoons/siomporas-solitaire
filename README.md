@@ -19,8 +19,16 @@ the game you reopen.
 
 ## Playing on a phone
 
-- **Tap a card to pick it up, tap a pile to put it down.** Legal destinations light
-  up. Tap the same card twice to send it straight to a foundation when it can go.
+- **Drag a card (or a run) onto another pile.** Legal destinations light up under
+  your finger and the board scrolls when you drag to an edge. Release on a pile to
+  play it.
+- **Or tap, tap.** Tap a card to pick it up, tap a pile to put it down. Better for
+  shaky hands and always available. Tap the same card twice to send it straight to
+  a foundation when it can go.
+- **Full screen** is the button in the top bar (the four corners). In landscape it
+  gives the table the whole screen; the same button brings the browser chrome back.
+- Nothing on the page selects, highlights, or long-press-menus: dragging a card is
+  always a card drag, never a text selection, a page refresh, or a back gesture.
 - **Undo** is always in the top bar. It goes back as far as you like.
 - **Menu → New game** starts fresh; **Continue last game** resumes the deal you left,
   even after the phone restarts.
@@ -45,9 +53,15 @@ npm run dev        # http://localhost:5173
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve dist/ on :4173
 npm test           # rules engine tests (node --test, no extra runner)
+npm run smoke      # with preview running: click through all three games
+npm run drag       # with preview running: mouse drag + touch drag, all three games
 npm run offline    # with preview running: proves the build opens with no network
 npm run icons      # regenerate the PWA icons from public/favicon.svg
 ```
+
+Cards size themselves from the window: phone-sized in the hand, up to 160 px on a
+desktop monitor, with the deal centred on the felt rather than pinned to the
+top-left corner.
 
 The rules engine in `src/engine/` is pure TypeScript with no DOM: cards, moves,
 legality, undo, serialisation. `src/ui/` is the board; `src/app.tsx` holds the small

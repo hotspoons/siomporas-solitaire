@@ -1,0 +1,33 @@
+import { chromium, devices } from 'playwright'
+import { legalMoves, newGame, serialize } from '../src/engine/game.ts'
+
+const state = newGame('klondike', { seed: 4242, draw: 1 })
+const playable = legalMoves(state).find((m) => m.type === 'move' && m.from.kind === 'tableau')
+console.log('playable', JSON.stringify(playable))
+const browser = await chromium.launch()
+const context = await browser.newContext({ ...devices['Pixel 7'] })
+const page = await context.newPage()
+page.on('pageerror', (e) => console.log('PAGEERROR', e.message))
+await page.addInitScript((saved) => localStorage.setItem('siomporas-solitaire.game.v1', saved), serialize(state))
+await page.goto('http://127.0.0.1:4174/', { waitUntil: 'networkidle' })
+await page.getByRole('button', { name: 'Continue last game' }).tap()
+await page.waitForSelector('.board[data-ready]')
+
+const src = state.piles.find((p) => p.kind === playable.from.kind && p.index === playable.from.index)
+const index = src.cards.length - playable.count
+const card = page.locator(`[data-pile="${playable.from.kind}:${playable.from.index}"] .card`).nth(index)
+const box = await card.boundingBox()
+console.log('card box', JSON.stringify(box))
+await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+await page.waitForTimeout(200)
+console.log('selected after tap', await page.locator('.card.selected').count())
+console.log('targets', await page.locator('.pile.target').count())
+const before = await page.locator('.moves').textContent()
+const to = page.locator(`[data-pile="${playable.to.kind}:${playable.to.index}"]`).first()
+const tbox = await to.boundingBox()
+console.log('target box', JSON.stringify(tbox))
+await page.touchscreen.tap(tbox.x + tbox.width / 2, tbox.y + tbox.height - 6)
+await page.waitForTimeout(250)
+console.log('moves', before, '->', await page.locator('.moves').textContent())
+console.log('selected now', await page.locator('.card.selected').count())
+await browser.close()

@@ -15,7 +15,11 @@
     "test": "node --test src/engine/*.test.ts",
     "icons": "node scripts/icons.mjs",
     "offline": "node scripts/offline-check.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "smoke": "node scripts/smoke.mjs",
+    "drag": "node scripts/drag-check.mjs",
+    "touch": "node scripts/touch-check.mjs",
+    "layout": "node scripts/layout-probe.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.3.1",

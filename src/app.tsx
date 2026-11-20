@@ -13,6 +13,7 @@ import {
   serialize,
 } from './engine/game.ts'
 import { randomSeed } from './engine/cards.ts'
+import { clicksSuppressed } from './ui/drag.ts'
 import type { GameState, PileRef, Variant } from './engine/types.ts'
 
 const PREFS_KEY = 'siomporas-solitaire.prefs.v1'
@@ -56,6 +57,8 @@ const selection = signal<{ ref: PileRef; count: number } | null>(null)
 const screen = signal<'menu' | 'game'>('menu')
 const canInstall = signal(false)
 const standalone = signal(false)
+const fullscreen = signal(false)
+const canFullscreen = signal(false)
 
 let deferredPrompt: InstallEvent | null = null
 
@@ -130,7 +133,17 @@ function onCard(ref: PileRef, cardIndex: number): void {
   selection.value = count > 0 ? { ref, count } : null
 }
 
+function onDrop(from: PileRef, to: PileRef, count: number): void {
+  const g = game.value
+  if (!g) return
+  const next = applyMove(g, { type: 'move', from, to, count })
+  if (next) commit(next)
+  else selection.value = { ref: from, count }
+}
+
 function onPile(ref: PileRef): void {
+  // A drag ends with a pointerup that the browser also reports as a click.
+  if (clicksSuppressed()) return
   const g = game.value
   const sel = selection.value
   if (!g || !sel) return
@@ -148,13 +161,6 @@ function onStock(): void {
   else commit(applyMove(g, { type: 'recycle' }))
 }
 
-function onAuto(ref: PileRef): void {
-  const g = game.value
-  if (!g) return
-  const auto = foundationMove(g, ref)
-  if (auto) commit(applyMove(g, auto))
-}
-
 function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
   const nav = navigator as Navigator & { standalone?: boolean }
@@ -164,6 +170,11 @@ function isStandalone(): boolean {
 export function App() {
   useEffect(() => {
     standalone.value = isStandalone()
+    canFullscreen.value = typeof document !== 'undefined' && document.fullscreenEnabled === true
+    const onFullscreenChange = () => {
+      fullscreen.value = !!document.fullscreenElement
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
     const onPrompt = (e: Event) => {
       e.preventDefault()
       deferredPrompt = e as InstallEvent
@@ -179,8 +190,18 @@ export function App() {
     return () => {
       window.removeEventListener('beforeinstallprompt', onPrompt)
       window.removeEventListener('appinstalled', onInstalled)
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
     }
   }, [])
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    } catch {
+      /* the browser refused (no gesture, policy); the page still plays */
+    }
+  }
 
   const install = async () => {
     const ev = deferredPrompt
@@ -195,12 +216,19 @@ export function App() {
   const g = current && screen.value === 'game' ? current : null
 
   return (
-    <div class="app">
+    <div
+      class="app"
+      onContextMenu={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
+    >
       {g ? (
         <>
           <Toolbar
             state={g}
             canUndo={history.value.length > 0}
+            fullscreen={fullscreen.value}
+            canFullscreen={canFullscreen.value}
+            onFullscreen={toggleFullscreen}
             onUndo={undo}
             onMenu={() => {
               selection.value = null
@@ -213,8 +241,8 @@ export function App() {
             selection={selection.value}
             targets={targets.value}
             onCard={onCard}
-            onAuto={onAuto}
             onPile={onPile}
+            onDrop={onDrop}
             onStock={onStock}
           />
           {g.won && (
