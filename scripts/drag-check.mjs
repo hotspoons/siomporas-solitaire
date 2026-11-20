@@ -89,6 +89,9 @@ const browser = await chromium.launch()
   }
   if (process.env.DEBUG_DRAG) console.log('  touch viewport', JSON.stringify(viewport), 'from', JSON.stringify(from), 'to', JSON.stringify(to))
   await touch('touchStart', from)
+  // On a board that scrolls, a finger rests briefly before it picks a card up;
+  // a quick vertical swipe is a scroll. Hold, then drag.
+  await page.waitForTimeout(200)
   await slide(from, to)
   ok((await page.locator('.drag-layer').count()) === 1, 'touch: ghost follows the finger')
   await page.screenshot({ path: `shots/drag-touch-${variant}.png` })
@@ -118,6 +121,7 @@ if (variant === 'spider') {
       touchPoints: p ? [{ x: p.x, y: p.y, radiusX: 4, radiusY: 4, force: 1, id: 1 }] : [],
     })
   await touch('touchStart', from)
+  await page.waitForTimeout(200)
   const edgeX = 405
   for (let i = 1; i <= 12; i++) {
     await touch('touchMove', { x: from.x + ((edgeX - from.x) * i) / 12, y: from.y })
@@ -126,6 +130,53 @@ if (variant === 'spider') {
   await page.waitForTimeout(700)
   const scrolled = await page.evaluate(() => document.querySelector('.board').scrollLeft)
   ok(scrolled > 0, `touch: dragging to the edge scrolls the board (scrollLeft ${scrolled})`)
+  await touch('touchEnd')
+  await context.close()
+}
+
+// --- touch: scrubbing the board in landscape must scroll, not rewind it ---
+if (variant === 'klondike') {
+  const context = await browser.newContext({
+    ...devices['Pixel 7'],
+    viewport: { width: 915, height: 412 },
+  })
+  const page = await open(context)
+  const cdp = await context.newCDPSession(page)
+  const board = page.locator('.board')
+  const metrics = await board.evaluate((el) => ({
+    max: el.scrollHeight - el.clientHeight,
+    top: el.getBoundingClientRect().top,
+  }))
+  ok(metrics.max > 40, `landscape: board scrolls (${metrics.max}px)`)
+  const before = Math.round(metrics.max / 2)
+  await board.evaluate((el, top) => { el.scrollTop = top }, before)
+
+  const card = page.locator('.board .card.face').first()
+  const box = await card.boundingBox()
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n))
+  const from = {
+    x: clamp(box.x + box.width / 2, 8, 907),
+    y: clamp(box.y + box.height / 2, 80, 320),
+  }
+  const touch = (type, p) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: p ? [{ x: p.x, y: p.y, radiusX: 4, radiusY: 4, force: 1, id: 1 }] : [],
+    })
+  await touch('touchStart', from)
+  for (let i = 1; i <= 10; i++) {
+    await touch('touchMove', { x: from.x, y: Math.max(10, from.y - i * 10) })
+    await page.waitForTimeout(16)
+  }
+  await page.waitForTimeout(400)
+  const after = await board.evaluate((el) => el.scrollTop)
+  ok(after > before, `landscape: swipe up scrolls down (${before} -> ${after})`)
+  ok((await page.locator('.drag-layer').count()) === 0, 'landscape: scroll does not pick a card up')
+  await page.waitForTimeout(500)
+  ok(
+    (await board.evaluate((el) => el.scrollTop)) === after,
+    'landscape: board does not float back to the top',
+  )
   await touch('touchEnd')
   await context.close()
 }

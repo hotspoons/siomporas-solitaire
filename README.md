@@ -21,7 +21,11 @@ the game you reopen.
 
 - **Drag a card (or a run) onto another pile.** Legal destinations light up under
   your finger and the board scrolls when you drag to an edge. Release on a pile to
-  play it.
+  play it. On a phone, rest your finger on a card for a moment to pick it up, then
+  drag.
+- **Swipe up or down to scroll the board** when the cards run past the screen (most
+  often in landscape). A quick vertical swipe always scrolls; it never picks a card
+  up, so the board can't jump back to the top under your finger.
 - **Or tap, tap.** Tap a card to pick it up, tap a pile to put it down. Better for
   shaky hands and always available. Tap the same card twice to send it straight to
   a foundation when it can go.

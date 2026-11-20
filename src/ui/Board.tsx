@@ -43,9 +43,15 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
   const of = (kind: Pile['kind']) => state.piles.filter((p) => p.kind === kind)
 
   /**
-   * One path for mouse and touch: press a face-up card, move to drag it (the whole
-   * movable run comes along), release on a pile to play it, release without moving
-   * to tap-select it. Text can never be selected because the cards opt out of it.
+   * One path for mouse and touch. A mouse drags as soon as it moves; a finger
+   * either taps, swipes the board, or rests briefly and then drags a card.
+   *
+   * Scrolling used to be impossible when a swipe started on a face-up card:
+   * the card owns the gesture (`touch-action: none`), so the swipe became a
+   * drag, and the drag's edge-scroll saw the finger near the top edge and
+   * rewound the board to the top. In landscape the board is taller than the
+   * screen, so that made the bottom half unreachable. A quick vertical swipe
+   * now pans the board; resting a finger for a moment still picks the card up.
    */
   const onCardPointerDown = (e: PointerEvent, ref: PileRef, cardIndex: number) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -70,11 +76,20 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
     const legalKeys = new Set(legal.map(pileKey))
     const pointerId = e.pointerId
     const boardEl = cardEl.closest('.board') as HTMLElement | null
-    let active = false
+    const touch = e.pointerType !== 'mouse'
+    const scrollable = touch && !!boardEl && boardEl.scrollHeight > boardEl.clientHeight + 1
+    let mode: 'idle' | 'drag' | 'pan' = 'idle'
     let lastX = startX
     let lastY = startY
+    let intentX = 0
+    let intentY = 0
     let hovered: Element | null = null
     let finished = false
+    let moved = false
+    let holdTimer = 0
+    let raf = 0
+    const panTop = boardEl?.scrollTop ?? 0
+    const panLeft = boardEl?.scrollLeft ?? 0
 
     const overPile = (x: number, y: number): Element | null =>
       document.elementFromPoint(x, y)?.closest('[data-pile]') ?? null
@@ -87,20 +102,37 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
       if (next && legalKeys.has(next.getAttribute('data-pile') ?? '')) next.classList.add('drop-hover')
     }
 
+    const scrollsVertically = (): boolean =>
+      !!boardEl && boardEl.scrollHeight > boardEl.clientHeight + 1
+
+    /** Can this vertical swipe still move the board in the direction asked? */
+    const canPan = (dy: number): boolean => {
+      if (!boardEl) return false
+      if (dy < 0) return boardEl.scrollTop < boardEl.scrollHeight - boardEl.clientHeight - 1
+      return boardEl.scrollTop > 0
+    }
+
+    const pan = (ev: PointerEvent): void => {
+      if (!boardEl) return
+      boardEl.scrollTop = panTop - (ev.clientY - startY)
+      boardEl.scrollLeft = panLeft - (ev.clientX - startX)
+    }
+
     // Dragging near an edge of the board scrolls it, so piles that are off-screen
     // on a narrow phone can still be reached without letting go of the card.
-    let raf = 0
+    // Only the edge the finger is travelling toward scrolls: a drag that starts
+    // near the top must never rewind the board under the player.
     const EDGE = 48
     const autoScroll = () => {
-      if (!active || !boardEl) return
+      if (mode !== 'drag' || !boardEl) return
       const r = boardEl.getBoundingClientRect()
       const step = (d: number) => Math.max(2, Math.round(d / 4))
       let dx = 0
       let dy = 0
-      if (lastX < r.left + EDGE) dx = -step(r.left + EDGE - lastX)
-      else if (lastX > r.right - EDGE) dx = step(lastX - (r.right - EDGE))
-      if (lastY < r.top + EDGE) dy = -step(r.top + EDGE - lastY)
-      else if (lastY > r.bottom - EDGE) dy = step(lastY - (r.bottom - EDGE))
+      if (lastX < r.left + EDGE && intentX < 0) dx = -step(r.left + EDGE - lastX)
+      else if (lastX > r.right - EDGE && intentX > 0) dx = step(lastX - (r.right - EDGE))
+      if (lastY < r.top + EDGE && intentY < 0) dy = -step(r.top + EDGE - lastY)
+      else if (lastY > r.bottom - EDGE && intentY > 0) dy = step(lastY - (r.bottom - EDGE))
       if (dx !== 0 || dy !== 0) {
         boardEl.scrollLeft += dx
         boardEl.scrollTop += dy
@@ -109,18 +141,72 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
       raf = requestAnimationFrame(autoScroll)
     }
 
-    const onMove = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return
-      if (!active) {
-        if (count === 0 || Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return
-        active = true
-        raf = requestAnimationFrame(autoScroll)
-        for (const el of sourceEls) el.classList.add('drag-src')
-        for (const t of legal) {
-          document.querySelector(`[data-pile="${pileKey(t)}"]`)?.classList.add('drag-target')
-        }
+    const activate = (x: number, y: number): void => {
+      mode = 'drag'
+      raf = requestAnimationFrame(autoScroll)
+      for (const el of sourceEls) el.classList.add('drag-src')
+      for (const t of legal) {
+        document.querySelector(`[data-pile="${pileKey(t)}"]`)?.classList.add('drag-target')
       }
-      const next: DragState = {
+      dragState.value = {
+        from: ref,
+        count,
+        cards,
+        x,
+        y,
+        ox,
+        oy,
+        cw: rect.width,
+        targets: legal,
+      }
+      paint(x, y)
+    }
+
+    // Resting a finger on a card arms the drag. A finger that starts moving
+    // first is panning the board, not picking anything up.
+    if (touch && count > 0 && scrollsVertically()) {
+      holdTimer = window.setTimeout(() => {
+        holdTimer = 0
+        if (mode === 'idle' && !finished) activate(startX, startY)
+      }, 120)
+    }
+
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId || finished) return
+      const mx = ev.clientX - lastX
+      const my = ev.clientY - lastY
+      if (Math.abs(mx) > 0.5) intentX = Math.sign(mx)
+      if (Math.abs(my) > 0.5) intentY = Math.sign(my)
+      lastX = ev.clientX
+      lastY = ev.clientY
+
+      if (mode === 'pan') {
+        pan(ev)
+        return
+      }
+      if (mode === 'idle') {
+        const dx = ev.clientX - startX
+        const dy = ev.clientY - startY
+        if (Math.hypot(dx, dy) < (touch ? 10 : DRAG_THRESHOLD)) return
+        // On a board that scrolls, a quick vertical swipe is always a scroll.
+        // Picking a card up vertically takes a short rest on it (above), so the
+        // two gestures can never fight over the same movement.
+        if (scrollable && Math.abs(dy) > Math.abs(dx)) {
+          // Even at an end of the board the swipe is a scroll gesture: the hold
+          // must not fire and turn it into a card drag halfway through.
+          mode = 'pan'
+          window.clearTimeout(holdTimer)
+          holdTimer = 0
+          if (canPan(dy)) pan(ev)
+          return
+        }
+        if (count === 0) return
+        activate(ev.clientX, ev.clientY)
+        moved = true
+        return
+      }
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > DRAG_THRESHOLD) moved = true
+      dragState.value = {
         from: ref,
         count,
         cards,
@@ -131,13 +217,13 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
         cw: rect.width,
         targets: legal,
       }
-      dragState.value = next
-      lastX = ev.clientX
-      lastY = ev.clientY
       paint(lastX, lastY)
     }
 
     const teardown = () => {
+      window.clearTimeout(holdTimer)
+      holdTimer = 0
+      cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onCancel)
@@ -151,9 +237,14 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
     const onUp = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId || finished) return
       finished = true
-      const dragged = active
+      const was = mode
       teardown()
-      if (!dragged) {
+      if (was === 'pan') {
+        suppressClicks()
+        return
+      }
+      // A tap, or a drag that never actually moved, is still a selection.
+      if (was !== 'drag' || !moved) {
         onCard(ref, cardIndex)
         return
       }

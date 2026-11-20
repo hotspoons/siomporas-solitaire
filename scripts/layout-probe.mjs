@@ -19,7 +19,7 @@ async function measure(variant, width, height) {
     const widths = cards.map((c) => Math.round(c.getBoundingClientRect().width))
     const heights = cards.map((c) => Math.round(c.getBoundingClientRect().height))
     const board = document.querySelector('.board')
-    const btn = document.querySelector('.toolbar .btn')
+    const btn = document.querySelector('.controls .ctl')
     const br = board.getBoundingClientRect()
     return {
       cardW: Math.min(...widths),
