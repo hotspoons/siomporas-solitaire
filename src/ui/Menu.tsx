@@ -96,20 +96,25 @@ export function Menu({
         </section>
       )}
 
-      <button type="button" class="btn primary big" onClick={onNew}>
-        New game
-      </button>
-      {hasSaved && current && (
-        <>
-          <p class="continue-note">
-            {variantLabel(current.variant)} · {current.moves} moves in
-            {current.cheats ? ` · ${current.cheats} cheat${current.cheats > 1 ? 's' : ''}` : ''}
-          </p>
-          <button type="button" class="btn big" onClick={onResume}>
-            Continue last game
-          </button>
-        </>
-      )}
+      <div class="menu-actions">
+        <button type="button" class="btn primary big" onClick={onNew}>
+          New game
+        </button>
+        {hasSaved && current && (
+          <div class="resume">
+            <p class="continue-note">
+              {variantLabel(current.variant)} ·{' '}
+              {current.moves === 0
+                ? 'not started'
+                : `${current.moves} move${current.moves === 1 ? '' : 's'} in`}
+              {current.cheats ? ` · ${current.cheats} cheat${current.cheats > 1 ? 's' : ''}` : ''}
+            </p>
+            <button type="button" class="btn big" onClick={onResume}>
+              Continue last game
+            </button>
+          </div>
+        )}
+      </div>
 
       {current && (
         <details class="cheats">
