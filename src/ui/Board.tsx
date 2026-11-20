@@ -13,6 +13,7 @@ interface Props {
   onPile: (ref: PileRef) => void
   onDrop: (from: PileRef, to: PileRef, count: number) => void
   onStock: () => void
+  peek: boolean
 }
 
 const isTarget = (targets: PileRef[], ref: PileRef) =>
@@ -38,7 +39,7 @@ function DragLayer() {
   )
 }
 
-export function Board({ state, selection, targets, onCard, onPile, onDrop, onStock }: Props) {
+export function Board({ state, selection, targets, onCard, onPile, onDrop, onStock, peek }: Props) {
   const of = (kind: Pile['kind']) => state.piles.filter((p) => p.kind === kind)
 
   /**
@@ -54,9 +55,12 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
     if (!pile) return
     const cards = pile.cards.slice(cardIndex, cardIndex + count)
     const cardEl = e.currentTarget as HTMLElement
-    const sourceEls = Array.from(
+    // Use DOM order, not pile order: the waste renders only its top few cards.
+    const pileCards = Array.from(
       cardEl.closest('[data-pile]')?.querySelectorAll<HTMLElement>('.card') ?? [],
-    ).slice(cardIndex, cardIndex + count)
+    )
+    const first = Math.max(0, pileCards.indexOf(cardEl))
+    const sourceEls = pileCards.slice(first, first + count)
     const rect = cardEl.getBoundingClientRect()
     const ox = e.clientX - rect.left
     const oy = e.clientY - rect.top
@@ -180,10 +184,15 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
     const target = isTarget(targets, ref)
     const isSelectedPile = selection?.ref.kind === ref.kind && selection?.ref.index === ref.index
     const selectedFrom = isSelectedPile ? pile.cards.length - selection!.count : pile.cards.length
+    // Klondike's waste shows the last one or three cards, fanned. The pile behind
+    // it still holds every card played, but the row never grows taller.
+    const wasteFrom =
+      pile.kind === 'waste' ? Math.max(0, pile.cards.length - Math.min(state.draw || 1, pile.cards.length)) : 0
+    const visibleCards = pile.kind === 'waste' ? pile.cards.slice(wasteFrom) : pile.cards
 
     return (
       <div
-        class={`pile ${className}${target ? ' target' : ''}`}
+        class={`pile ${className}${pile.kind === 'waste' ? ' waste' : ''}${target ? ' target' : ''}`}
         data-pile={`${pile.kind}:${pile.index}`}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('.card')) return
@@ -199,15 +208,19 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
           </button>
         )}
         {pile.kind !== 'stock' &&
-          pile.cards.map((card, i) => (
-            <CardView
-              key={card.id}
-              card={card}
-              selected={isSelectedPile && i >= selectedFrom}
-              onSelect={() => onCard(ref, i)}
-              onPointerDown={(e) => onCardPointerDown(e, ref, i)}
-            />
-          ))}
+          visibleCards.map((card, n) => {
+            const i = wasteFrom + n
+            return (
+              <CardView
+                key={card.id}
+                card={card}
+                selected={isSelectedPile && i >= selectedFrom}
+                peek={peek}
+                onSelect={() => onCard(ref, i)}
+                onPointerDown={(e) => onCardPointerDown(e, ref, i)}
+              />
+            )
+          })}
       </div>
     )
   }
@@ -238,8 +251,9 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
         {tableaus.map((p) => renderPile(p, 'tableau-pile'))}
       </div>
       <div class="sr-only" aria-live="polite">
-        {selection ? 'Card selected. Tap a highlighted pile to move it.' : `${state.moves} moves`}
+        {selection ? 'Card selected. Tap a highlighted pile to move it.' : ''}
       </div>
+      <span class="moves sr-only">{state.moves} moves</span>
       <DragLayer />
     </div>
   )

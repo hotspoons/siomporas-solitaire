@@ -1,4 +1,4 @@
-import type { Variant } from '../engine/types.ts'
+import type { GameState, Variant } from '../engine/types.ts'
 import { VARIANTS, variantLabel } from '../engine/game.ts'
 
 export interface Prefs {
@@ -9,6 +9,7 @@ export interface Prefs {
 
 interface Props {
   prefs: Prefs
+  current: GameState | null
   hasSaved: boolean
   canInstall: boolean
   standalone: boolean
@@ -16,9 +17,27 @@ interface Props {
   onNew: () => void
   onResume: () => void
   onInstall: () => void
+  peek: boolean
+  canSendHome: boolean
+  onPeek: () => void
+  onCheat: (kind: 'shuffle' | 'home') => void
 }
 
-export function Menu({ prefs, hasSaved, canInstall, standalone, onPrefs, onNew, onResume, onInstall }: Props) {
+export function Menu({
+  prefs,
+  current,
+  hasSaved,
+  canInstall,
+  standalone,
+  onPrefs,
+  onNew,
+  onResume,
+  onInstall,
+  peek,
+  canSendHome,
+  onPeek,
+  onCheat,
+}: Props) {
   return (
     <main class="menu">
       <div class="brand">
@@ -80,10 +99,36 @@ export function Menu({ prefs, hasSaved, canInstall, standalone, onPrefs, onNew, 
       <button type="button" class="btn primary big" onClick={onNew}>
         New game
       </button>
-      {hasSaved && (
-        <button type="button" class="btn big" onClick={onResume}>
-          Continue last game
-        </button>
+      {hasSaved && current && (
+        <>
+          <p class="continue-note">
+            {variantLabel(current.variant)} · {current.moves} moves in
+            {current.cheats ? ` · ${current.cheats} cheat${current.cheats > 1 ? 's' : ''}` : ''}
+          </p>
+          <button type="button" class="btn big" onClick={onResume}>
+            Continue last game
+          </button>
+        </>
+      )}
+
+      {current && (
+        <details class="cheats">
+          <summary>Cheats</summary>
+          <div class="cheat-list">
+            <button type="button" class="btn" onClick={() => onCheat('shuffle')}>
+              Shuffle the face-down cards
+            </button>
+            {canSendHome && (
+              <button type="button" class="btn" onClick={() => onCheat('home')}>
+                Send the safe cards home
+              </button>
+            )}
+            <button type="button" class="btn" aria-pressed={peek} onClick={onPeek}>
+              {peek ? 'Peeking at face-down cards' : 'Peek at face-down cards'}
+            </button>
+          </div>
+          <p class="hint-note">Cheats are undoable, and nobody has to know.</p>
+        </details>
       )}
 
       <section class="install">

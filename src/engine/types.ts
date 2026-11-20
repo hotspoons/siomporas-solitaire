@@ -33,6 +33,8 @@ export interface GameState {
   /** Klondike: cards drawn at a time. */
   draw: number
   won: boolean
+  /** How many cheats were used on this deal (0 or absent means none). */
+  cheats?: number
 }
 
 export interface DealOptions {

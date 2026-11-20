@@ -58,82 +58,65 @@ button {
   container-type: inline-size;
 }
 
-/* ---------- toolbar ---------- */
+/* ---------- floating controls ---------- */
 
-.toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+.controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: 8px;
-  padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
-  background: rgba(4, 26, 19, 0.88);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  /* A drag that starts on the bar must never become a pull-to-refresh. */
-  touch-action: none;
+  padding: 8px calc(10px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom))
+    calc(10px + env(safe-area-inset-left));
+  pointer-events: none;
 }
 
-.title {
-  flex: 1;
+.controls-right {
   display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-  min-width: 0;
+  gap: 8px;
 }
 
-.title strong {
-  font-size: 18px;
-}
-
-.moves {
-  font-size: 13px;
-  opacity: 0.75;
-}
-
-.btn {
-  min-height: 44px;
-  min-width: 44px;
+.ctl {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
   padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 26, 19, 0.74);
+  backdrop-filter: blur(8px);
   color: var(--ink);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
 }
 
-.btn:disabled {
+.ctl.wide {
+  padding: 0 18px;
+}
+
+.ctl:disabled {
   opacity: 0.35;
 }
 
-.btn.icon {
-  padding: 0;
-  display: grid;
-  place-items: center;
-  color: var(--ink);
-  opacity: 0.9;
-}
-
-.btn.primary {
-  background: var(--accent);
-  color: #1b2a20;
-  border-color: transparent;
-}
-
-.btn.big {
-  min-height: 54px;
-  font-size: 19px;
-  width: 100%;
-}
-
-.btn:focus-visible,
-.variant:focus-visible,
-.segmented button:focus-visible,
-.card:focus-visible {
+.ctl:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+.moves {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ---------- board ---------- */
@@ -154,7 +137,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
+  padding: calc(8px + env(safe-area-inset-top)) 8px calc(66px + env(safe-area-inset-bottom));
   overflow: auto;
   overscroll-behavior: contain;
   user-select: none;
@@ -187,6 +170,31 @@ button {
 
 .tableau {
   align-items: start;
+}
+
+/* Klondike waste: only the last one or three cards are drawn, fanned to the
+   right, so drawing never makes the row taller. */
+.pile.waste {
+  flex-direction: row;
+  align-items: flex-start;
+  overflow: visible;
+}
+
+.pile.waste .card {
+  flex: 0 0 var(--cw);
+}
+
+.pile.waste .card + .card {
+  margin-top: 0;
+  margin-left: calc(var(--cw) * -0.58);
+}
+
+.pile.waste .card:nth-child(2) {
+  z-index: 2;
+}
+
+.pile.waste .card:nth-child(3) {
+  z-index: 3;
 }
 
 .top-row > * {
@@ -300,6 +308,51 @@ button {
   opacity: 0.92;
 }
 
+/* Family face on a court card (src/theme/family.ts). */
+.member {
+  position: absolute;
+  inset: 16% 9% 7%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  overflow: hidden;
+}
+
+.member-photo {
+  width: 78%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.member-initials {
+  font-size: calc(var(--cw) * 0.34);
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.member-name {
+  max-width: 100%;
+  font-size: calc(var(--cw) * 0.14);
+  line-height: 1.05;
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A face-down card while cheating a peek. Not playable. */
+.card.peek {
+  opacity: 0.55;
+  outline: 2px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -3px;
+  cursor: default;
+}
+
 .back {
   background:
     repeating-linear-gradient(45deg, #1c6b52 0 6px, #17573f 6px 12px);
@@ -392,6 +445,35 @@ button {
 }
 
 /* ---------- menu ---------- */
+
+.cheats {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cheats summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.cheat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.continue-note {
+  margin: 14px 0 -4px;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.75;
+}
 
 .menu {
   flex: 1;
@@ -542,19 +624,20 @@ details summary {
 /* ---------- landscape / short screens ---------- */
 
 @media (orientation: landscape) and (max-height: 520px) {
-  .toolbar {
-    padding-top: calc(2px + env(safe-area-inset-top));
-    padding-bottom: 2px;
-  }
-
   .board {
     --cw: min(max(40px, calc((100cqw - (var(--cols) - 1) * var(--gap) - 18px) / var(--cols))), 30dvh, 96px);
     gap: 6px;
-    padding-top: 6px;
+    padding: 4px 6px calc(54px + env(safe-area-inset-bottom));
   }
 
-  .title strong {
-    font-size: 16px;
+  .controls {
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .ctl {
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0 12px;
   }
 }
 

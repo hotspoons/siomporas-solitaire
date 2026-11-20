@@ -25,8 +25,13 @@ the game you reopen.
 - **Or tap, tap.** Tap a card to pick it up, tap a pile to put it down. Better for
   shaky hands and always available. Tap the same card twice to send it straight to
   a foundation when it can go.
-- **Full screen** is the button in the top bar (the four corners). In landscape it
-  gives the table the whole screen; the same button brings the browser chrome back.
+- **The controls float in the bottom corners** instead of taking a strip off the
+  top: hamburger for the menu on the left, Undo and full screen on the right. In
+  landscape the felt starts at the very top of the screen.
+- **Full screen** is the four-corner button, and only exists in a browser tab —
+  the installed app is already full screen.
+- **Cheats**, under the menu, has *shuffle the face-down cards*, *send the safe
+  cards home* and *peek*. All undoable. See [docs/CHEATS.md](docs/CHEATS.md).
 - Nothing on the page selects, highlights, or long-press-menus: dragging a card is
   always a card drag, never a text selection, a page refresh, or a back gesture.
 - **Undo** is always in the top bar. It goes back as far as you like.
@@ -55,6 +60,8 @@ npm run preview    # serve dist/ on :4173
 npm test           # rules engine tests (node --test, no extra runner)
 npm run smoke      # with preview running: click through all three games
 npm run drag       # with preview running: mouse drag + touch drag, all three games
+npm run waste      # with preview running: draw 1/3 never push the tableau down
+npm run cheats     # with preview running: the cheats menu, end to end
 npm run offline    # with preview running: proves the build opens with no network
 npm run icons      # regenerate the PWA icons from public/favicon.svg
 ```
@@ -64,7 +71,7 @@ desktop monitor, with the deal centred on the felt rather than pinned to the
 top-left corner.
 
 The rules engine in `src/engine/` is pure TypeScript with no DOM: cards, moves,
-legality, undo, serialisation. `src/ui/` is the board; `src/app.tsx` holds the small
+legality, cheats, undo, serialisation. `src/ui/` is the board; `src/app.tsx` holds the small
 amount of state (the game, the undo stack, the selection) and persists it to
 `localStorage` after every move.
 
@@ -86,6 +93,21 @@ The repository needs two secrets (Settings → Secrets and variables → Actions
 On the first deploy wrangler creates the DNS record and certificate for
 `solitaire.siomporas.com`; the zone must already be in that account. By hand:
 `npx wrangler login` once, then `npm run deploy`.
+
+## Family cards
+
+Court cards are ready to carry pictures of family members, one person per suit,
+with optional J/Q/K overrides:
+
+```ts
+// src/theme/family.ts
+export const FAMILY = {
+  hearts: { suit: { name: 'Grandma Rose', image: '/family/grandma-rose.png' } },
+}
+```
+
+Artwork spec and the decisions still to make are in [docs/FAMILY.md](docs/FAMILY.md).
+Until `FAMILY` is filled in, the table uses classic cards.
 
 ## Licence
 

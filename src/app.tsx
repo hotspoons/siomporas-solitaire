@@ -2,7 +2,7 @@ import { signal, computed } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 import { Board } from './ui/Board.tsx'
 import { Menu, type Prefs } from './ui/Menu.tsx'
-import { Toolbar } from './ui/Toolbar.tsx'
+import { Controls } from './ui/Controls.tsx'
 import {
   applyMove,
   deserialize,
@@ -13,6 +13,7 @@ import {
   serialize,
 } from './engine/game.ts'
 import { randomSeed } from './engine/cards.ts'
+import { sendHome, shuffleHidden } from './engine/cheats.ts'
 import { clicksSuppressed } from './ui/drag.ts'
 import type { GameState, PileRef, Variant } from './engine/types.ts'
 
@@ -58,6 +59,7 @@ const screen = signal<'menu' | 'game'>('menu')
 const canInstall = signal(false)
 const standalone = signal(false)
 const fullscreen = signal(false)
+const peek = signal(false)
 const canFullscreen = signal(false)
 
 let deferredPrompt: InstallEvent | null = null
@@ -96,6 +98,7 @@ function startGame(variant: Variant, opts: { draw?: number; difficulty?: number 
   })
   history.value = []
   selection.value = null
+  peek.value = false
   screen.value = 'game'
   persist()
 }
@@ -149,6 +152,16 @@ function onPile(ref: PileRef): void {
   if (!g || !sel) return
   const next = applyMove(g, { type: 'move', from: sel.ref, to: ref, count: sel.count })
   if (next) commit(next)
+}
+
+function cheat(kind: 'shuffle' | 'home'): void {
+  const g = game.value
+  if (!g) return
+  const next = kind === 'shuffle' ? shuffleHidden(g) : sendHome(g)
+  if (!next) return
+  next.cheats = (next.cheats ?? 0) + 1
+  commit(next)
+  screen.value = 'game'
 }
 
 function onStock(): void {
@@ -223,18 +236,16 @@ export function App() {
     >
       {g ? (
         <>
-          <Toolbar
-            state={g}
+          <Controls
             canUndo={history.value.length > 0}
             fullscreen={fullscreen.value}
-            canFullscreen={canFullscreen.value}
+            canFullscreen={canFullscreen.value && !standalone.value}
             onFullscreen={toggleFullscreen}
             onUndo={undo}
             onMenu={() => {
               selection.value = null
               screen.value = 'menu'
             }}
-            onNew={() => startGame(g.variant, { draw: g.draw, difficulty: g.difficulty })}
           />
           <Board
             state={g}
@@ -244,6 +255,7 @@ export function App() {
             onPile={onPile}
             onDrop={onDrop}
             onStock={onStock}
+            peek={peek.value}
           />
           {g.won && (
             <div class="win" role="dialog" aria-modal="true" aria-label="You won">
@@ -273,6 +285,7 @@ export function App() {
       ) : (
         <Menu
           prefs={prefs.value}
+          current={current}
           hasSaved={!!current}
           canInstall={canInstall.value}
           standalone={standalone.value}
@@ -286,6 +299,13 @@ export function App() {
             selection.value = null
           }}
           onInstall={install}
+          peek={peek.value}
+          canSendHome={!!current && screen.value === 'menu' && sendHome(current) !== null}
+          onPeek={() => {
+            peek.value = !peek.value
+            if (peek.value) screen.value = 'game'
+          }}
+          onCheat={cheat}
         />
       )}
     </div>

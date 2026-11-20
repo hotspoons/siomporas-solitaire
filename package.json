@@ -19,7 +19,9 @@
     "smoke": "node scripts/smoke.mjs",
     "drag": "node scripts/drag-check.mjs",
     "touch": "node scripts/touch-check.mjs",
-    "layout": "node scripts/layout-probe.mjs"
+    "layout": "node scripts/layout-probe.mjs",
+    "cheats": "node scripts/cheats-check.mjs",
+    "waste": "node scripts/waste-check.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.3.1",
