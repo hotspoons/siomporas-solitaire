@@ -22,7 +22,8 @@
     "layout": "node scripts/layout-probe.mjs",
     "cheats": "node scripts/cheats-check.mjs",
     "menu": "node scripts/menu-check.mjs",
-    "waste": "node scripts/waste-check.mjs"
+    "waste": "node scripts/waste-check.mjs",
+    "foundation": "node scripts/foundation-check.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.3.1",

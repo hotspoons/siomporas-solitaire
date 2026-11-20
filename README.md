@@ -29,6 +29,9 @@ the game you reopen.
 - **Or tap, tap.** Tap a card to pick it up, tap a pile to put it down. Better for
   shaky hands and always available. Tap the same card twice to send it straight to
   a foundation when it can go.
+- **The foundations never grow the board.** A tall pile stacks into the ace's
+  footprint with a few pixels of depth showing, so building up to a king can't
+  push the tableau off the screen, even in landscape.
 - **The controls float in the bottom corners** instead of taking a strip off the
   top: hamburger for the menu on the left, Undo and full screen on the right. In
   landscape the felt starts at the very top of the screen.
@@ -70,6 +73,7 @@ npm test           # rules engine tests (node --test, no extra runner)
 npm run smoke      # with preview running: click through all three games
 npm run drag       # with preview running: mouse drag + touch drag, all three games
 npm run waste      # with preview running: draw 1/3 never push the tableau down
+npm run foundation # with preview running: 13-card foundations never grow the row
 npm run cheats     # with preview running: the cheats menu, end to end
 npm run offline    # with preview running: proves the build opens with no network
 npm run icons      # regenerate the PWA icons from public/favicon.svg

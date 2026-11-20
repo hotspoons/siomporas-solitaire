@@ -334,7 +334,7 @@ export function Board({ state, selection, targets, onCard, onPile, onDrop, onSto
         ))}
         {foundations.map((p, i) => (
           <div class={`cell-${(state.variant === 'freecell' ? 5 : 4) + i}`} key={`fnd${p.index}`}>
-            {renderPile(p)}
+            {renderPile(p, 'fnd')}
           </div>
         ))}
       </div>

@@ -172,6 +172,25 @@ button {
   align-items: start;
 }
 
+/* Foundations never grow the row: every card sits in the same footprint as the
+   ace, and the last few peek out a hair so the pile still reads as a stack. A
+   thirteen-card column used to push the tableau off the screen in landscape. */
+.pile.fnd .card + .card {
+  margin-top: calc(var(--cw) * -1.4);
+}
+
+.pile.fnd .card:nth-last-child(2) {
+  transform: translate(2px, 2px);
+}
+
+.pile.fnd .card:nth-last-child(3) {
+  transform: translate(4px, 4px);
+}
+
+.pile.fnd .card:not(:last-child) {
+  pointer-events: none;
+}
+
 /* Klondike waste: only the last one or three cards are drawn, fanned to the
    right, so drawing never makes the row taller. */
 .pile.waste {
